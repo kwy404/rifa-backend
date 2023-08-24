@@ -17,17 +17,24 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
   dialect: 'mysql'
 });
 
-(async () => {
-  try {
-    await sequelize.authenticate();
-    console.log(chalk.green('[ SERVER ] =>'), 'Database connection established.');
-    await sequelize.sync();
-  } catch (error) {
-    console.error(chalk.red('[ SERVER ] =>'), 'Unable to connect to the database:', error);
+class Raffle extends Sequelize.Model {}
+Raffle.init({
+  title: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  description: {
+    type: DataTypes.STRING,
+    allowNull: false
+  },
+  image: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
-})();
+}, { sequelize, modelName: 'raffle' });
 
-const RaffleNumber = sequelize.define('RaffleNumber', {
+class RaffleNumber extends Sequelize.Model {}
+RaffleNumber.init({
   number: {
     type: DataTypes.INTEGER,
     allowNull: false,
@@ -44,8 +51,22 @@ const RaffleNumber = sequelize.define('RaffleNumber', {
   status: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  raffleId: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   }
-});
+}, { sequelize, modelName: 'raffleNumber' });
+
+(async () => {
+  try {
+    await sequelize.authenticate();
+    console.log(chalk.green('[ SERVER ] =>'), 'Database connection established.');
+    await sequelize.sync();
+  } catch (error) {
+    console.error(chalk.red('[ SERVER ] =>'), 'Unable to connect to the database:', error);
+  }
+})();
 
 app.use(express.json());
 
@@ -54,11 +75,11 @@ class PaymentManager {
     this.accessToken = accessToken;
   }
 
-  async createPixPayment(amount, description, payerEmail, payerPhone, res) {
-    const totalAmount = amount * 10; // Assuming each number costs 10 units of currency
+  async createPixPayment(amount, raffleId, payerEmail, payerPhone, res) {
+    const totalAmount = amount * 10;
     const paymentData = {
       transaction_amount: totalAmount,
-      description: description,
+      description: `Rifa - ${raffleId}`,
       payment_method_id: 'pix',
       payer: {
         email: payerEmail
@@ -76,13 +97,12 @@ class PaymentManager {
 
       const payment = response.data;
 
-      const purchasedNumbers = await purchaseRandomNumbers(amount, description, payerEmail, payerPhone);
-
-      const createdNumbers = await createRaffleNumbers(purchasedNumbers, payerEmail, payerPhone);
+      const purchasedNumbers = await purchaseRandomNumbers(amount);
+      const createdNumbers = await createRaffleNumbers(raffleId, purchasedNumbers, payerEmail, payerPhone);
 
       console.log(chalk.magenta('[ SERVER ] =>'), 'Payment stored in the database:', createdNumbers);
       const mercadoPago = payment;
-      return res.json({ message: 'Payment created', payameny: mercadoPago.point_of_interaction.transaction_data, purchasedNumbers, totalAmount });
+      return res.json({ message: 'Payment created', payment: mercadoPago.point_of_interaction.transaction_data, purchasedNumbers, totalAmount });
     } catch (error) {
       console.error(chalk.red('[ SERVER ] =>'), 'Error creating Pix payment:', error);
       return res.status(500).json({ message: 'Error creating payment' });
@@ -120,17 +140,24 @@ class PaymentManager {
 
 const paymentManager = new PaymentManager(accessToken);
 
-app.post('/purchaseRaffleNumbers', async (req, res) => {
-  const { amount } = req.body;
-  const purchasedNumbers = await purchaseRandomNumbers(amount);
-  console.log(chalk.magenta('[ SERVER ] =>'), 'Purchased raffle numbers:', purchasedNumbers);
-  return res.json({ message: 'Raffle numbers purchased', numbers: purchasedNumbers });
+app.post('/createRaffle', async (req, res) => {
+  const { title, description, image } = req.body;
+  try {
+    const raffle = await Raffle.create({
+      title: title,
+      description: description,
+      image: image
+    });
+    return res.json({ message: 'Raffle created', raffle: raffle });
+  } catch (error) {
+    console.error(chalk.red('[ SERVER ] =>'), 'Error creating raffle:', error);
+    return res.status(500).json({ message: 'Error creating raffle' });
+  }
 });
 
 app.post('/createPixPayment', (req, res) => {
-  const { amount, payerEmail, payerPhone } = req.body;
-  const description = "Rifa";
-  paymentManager.createPixPayment(amount, description, payerEmail, payerPhone, res);
+  const { amount, raffleId, payerEmail, payerPhone } = req.body;
+  paymentManager.createPixPayment(amount, raffleId, payerEmail, payerPhone, res);
 });
 
 app.post('/notification', (req, res) => {
@@ -152,11 +179,7 @@ app.get('/raffleNumbers/:email', async (req, res) => {
   }
 });
 
-app.listen(port, () => {
-  console.log(chalk.magenta('[ SERVER ] =>'), `Server is running on port ${port}`);
-});
-
-async function purchaseRandomNumbers(amount, description, payerEmail, payerPhone) {
+async function purchaseRandomNumbers(amount) {
   const purchasedNumbers = [];
   for (let i = 0; i < amount; i++) {
     const randomNum = Math.floor(Math.random() * 100) + 1;
@@ -170,14 +193,15 @@ async function purchaseRandomNumbers(amount, description, payerEmail, payerPhone
   return purchasedNumbers;
 }
 
-async function createRaffleNumbers(purchasedNumbers, payerEmail, payerPhone) {
+async function createRaffleNumbers(raffleId, purchasedNumbers, payerEmail, payerPhone) {
   const createdNumbers = [];
   for (const number of purchasedNumbers) {
     const createdPayment = await RaffleNumber.create({
       number: number,
       email: payerEmail,
       phone: payerPhone,
-      status: 'pending'
+      status: 'pending',
+      raffleId: raffleId
     });
 
     setTimeout(async () => {
@@ -197,3 +221,7 @@ async function removeUnpaidNumbers(paymentId) {
     console.error(chalk.red('[ SERVER ] =>'), 'Error removing unpaid numbers:', error);
   }
 }
+
+app.listen(port, () => {
+  console.log(chalk.magenta('[ SERVER ] =>'), `Server is running on port ${port}`);
+});

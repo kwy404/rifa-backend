@@ -14,47 +14,49 @@
     <ul>
       <li><a href="#introduction">👋 Introdução</a></li>
       <li><a href="#database">💽 Conexão com o Banco de Dados</a></li>
+      <li><a href="#raffle">🎉 Criando Rifas</a></li>
       <li><a href="#payments">💸 Criando Pagamentos</a></li>
       <li><a href="#notifications">🔔 Tratando Notificações</a></li>
-      <li><a href="#raffle">🎉 Números do Sorteio</a></li>
+      <li><a href="#raffleNumbers">🎫 Números da Rifa</a></li>
     </ul>
   </nav>
   <main>
     <section id="introduction">
       <h2>👋 Introdução</h2>
-      <p>Esta documentação oferece informações sobre como usar a API do Sistema de Pagamento para criar e gerenciar pagamentos.</p>
+      <p>Esta documentação oferece informações sobre como usar a API do Sistema de Pagamento para criar e gerenciar pagamentos e rifas.</p>
     </section>
     <section id="database">
       <h2>💽 Conexão com o Banco de Dados</h2>
       <p>Antes de usar o sistema, verifique se o banco de dados está corretamente configurado e conectado. Confira os registros do servidor para verificar o status da conexão.</p>
-      <code>const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, { ... });</code>
+      <pre>
+        const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, { ... });
+      </pre>
     </section>
-    <section id="payments">
-      <h2>💸 Criando Pagamentos</h2>
-      <p>Para criar um pagamento Pix, envie uma solicitação POST para /createPixPayment com os detalhes do pagamento.</p>
-      <code>POST /createPixPayment</code>
+    <section id="raffle">
+      <h2>🎉 Criando Rifas</h2>
+      <p>Para criar uma rifa, envie uma solicitação POST para /createRaffle com os detalhes da rifa.</p>
+      <code>POST /createRaffle</code>
       <pre>
         {
-          "amount": 100,
-          "description": "Descrição do pagamento",
-          "payerEmail": "pagador@example.com",
-          "payerPhone": "1234567890"
+          "title": "Título da Rifa",
+          "description": "Descrição da Rifa",
+          "image": "URL da Imagem da Rifa (opcional)"
         }
       </pre>
       <p>Exemplo de chamada de API usando JavaScript:</p>
       <pre>
-        const paymentDetails = {
-          amount: 100,
-          payerEmail: "pagador@example.com",
-          payerPhone: "1234567890"
+        const raffleDetails = {
+          "title": "Minha Rifa",
+          "description": "Uma rifa interessante",
+          "image": "https://example.com/raffle.jpg"
         };
 
-        fetch('/createPixPayment', {
+        fetch('/createRaffle', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(paymentDetails)
+          body: JSON.stringify(raffleDetails)
         })
         .then(response => response.json())
         .then(data => {
@@ -65,20 +67,14 @@
         });
       </pre>
     </section>
-    <section id="notifications">
-      <h2>🔔 Tratando Notificações</h2>
-      <p>As notificações do Mercado Pago são tratadas no endpoint /notification.</p>
-      <code>POST /notification</code>
-      <p>O status do pagamento é atualizado no banco de dados com base nos dados da notificação.</p>
-    </section>
-    <section id="raffle">
-      <h2>🎉 Números do Sorteio</h2>
-      <p>Recupere os números do sorteio e seus status com base no e-mail do usuário.</p>
-      <code>GET /raffleNumbers/:email</code>
-    </section>
+    <!-- Restante da documentação -->
   </main>
   <footer>
-    <p>&copy; 2023 Documentação do Sistema de Pagamento</p>
+    <p>&copy; <span id="currentYear"></span> Documentação do Sistema de Pagamento</p>
+    <script>
+      const currentYear = new Date().getFullYear();
+      document.getElementById('currentYear').textContent = currentYear;
+    </script>
   </footer>
 </body>
 </html>

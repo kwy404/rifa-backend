@@ -1,3 +1,4 @@
+/* Reset CSS */
 html {
   scroll-padding-top: 10rem;
   scroll-behavior: smooth;
@@ -10,17 +11,20 @@ body {
   background-color: #f3f5f7;
 }
 
+/* Header */
 header {
-  background-color: #333;
+  background-color: #2c3e50;
   color: #fff;
   text-align: center;
-  padding: 1rem;
+  padding: 2rem;
 }
 
 h1 {
   margin: 0;
+  font-size: 2.5rem;
 }
 
+/* Navigation */
 nav {
   background-color: #fff;
   padding: 1rem;
@@ -30,38 +34,48 @@ nav {
 nav ul {
   list-style: none;
   padding: 0;
+  margin: 0;
 }
 
 nav li {
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 nav a {
   text-decoration: none;
-  color: #333;
+  color: #3498db;
   font-weight: bold;
+  transition: color 0.3s ease-in-out;
 }
 
+nav a:hover {
+  color: #2980b9;
+}
+
+/* Main Content */
 main {
   max-width: 800px;
   margin: 2rem auto;
   padding: 2rem;
   background-color: #fff;
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 5px;
 }
 
 section {
-  margin-bottom: 2rem;
+  margin-bottom: 2.5rem;
 }
 
 h2 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+  color: #333;
 }
 
 p, pre, code {
-  font-size: 1rem;
-  line-height: 1.5;
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: #555;
 }
 
 code {
@@ -77,9 +91,35 @@ pre {
   overflow-x: auto;
 }
 
+/* Footer */
 footer {
   text-align: center;
   padding: 1rem;
-  background-color: #333;
+  background-color: #2c3e50;
   color: #fff;
+}
+
+footer p{
+  color: white !important;
+}
+
+/* Media Queries */
+@media screen and (max-width: 600px) {
+  main {
+    padding: 1.5rem;
+  }
+}
+
+@media screen and (max-width: 400px) {
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  p, pre, code {
+    font-size: 1rem;
+  }
 }
