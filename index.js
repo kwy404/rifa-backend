@@ -30,6 +30,10 @@ Raffle.init({
   image: {
     type: DataTypes.STRING,
     allowNull: true
+  },
+  price: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   }
 }, { sequelize, modelName: 'raffle' });
 
@@ -76,7 +80,11 @@ class PaymentManager {
   }
 
   async createPixPayment(amount, raffleId, payerEmail, payerPhone, res) {
-    const totalAmount = amount * 10;
+    const raffle = await Raffle.findOne({ where: { id: raffleId } });
+    if (!raffle) {
+      return res.status(404).json({ message: 'Raffle not found' });
+    }
+    const totalAmount = raffle.price * amount; // Calculate total amount
     const paymentData = {
       transaction_amount: totalAmount,
       description: `Rifa - ${raffleId}`,
@@ -141,16 +149,16 @@ class PaymentManager {
 const paymentManager = new PaymentManager(accessToken);
 
 app.post('/createRaffle', async (req, res) => {
-  const { title, description, image } = req.body;
+  const { title, description, image, price } = req.body;
   try {
     const raffle = await Raffle.create({
       title: title,
       description: description,
-      image: image
+      image: image,
+      price: price
     });
     return res.json({ message: 'Raffle created', raffle: raffle });
   } catch (error) {
-    console.error(chalk.red('[ SERVER ] =>'), 'Error creating raffle:', error);
     return res.status(500).json({ message: 'Error creating raffle' });
   }
 });
