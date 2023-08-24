@@ -23,7 +23,7 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
   try {
     await sequelize.authenticate();
     console.log(chalk.green('[ SERVER ] =>'), 'Database connection established.');
-    aawait sequelize.sync();
+    await sequelize.sync();
   } catch (error) {
     console.error(chalk.red('[ SERVER ] =>'), 'Unable to connect to the database:', error);
   }
