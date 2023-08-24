@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="./style.css">
+  <title>Documentação do Sistema de Pagamento</title>
+</head>
+<body>
+  <header>
+    <h1>Documentação do Sistema de Pagamento</h1>
+  </header>
+  
+  <nav>
+    <ul>
+      <li><a href="#introduction">Introdução</a></li>
+      <li><a href="#database">Conexão com o Banco de Dados</a></li>
+      <li><a href="#payments">Criando Pagamentos</a></li>
+      <li><a href="#notifications">Tratando Notificações</a></li>
+      <li><a href="#raffle">Números do Sorteio</a></li>
+    </ul>
+  </nav>
+  
+  <main>
+    <section id="introduction">
+      <h2>Introdução</h2>
+      <p>Esta documentação fornece informações sobre como utilizar a API do Sistema de Pagamento para criar e gerenciar pagamentos.</p>
+    </section>
+    
+    <section id="database">
+      <h2>Conexão com o Banco de Dados</h2>
+      <p>Verifique se o banco de dados está devidamente configurado e conectado antes de utilizar o sistema. Confira os logs do servidor para verificar o status da conexão.</p>
+      <code>const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, { ... });</code>
+    </section>
+    
+    <section id="payments">
+      <h2>Criando Pagamentos</h2>
+      <p>Para criar um pagamento Pix, envie uma requisição POST para /createPixPayment com os detalhes do pagamento.</p>
+      <code>POST /createPixPayment</code>
+      <pre>
+        {
+          "amount": 100,
+          "description": "Descrição do pagamento",
+          "payerEmail": "pagador@example.com",
+          "payerPhone": "1234567890"
+        }
+      </pre>
+    </section>
+    
+    <section id="notifications">
+      <h2>Tratando Notificações</h2>
+      <p>As notificações do Mercado Pago são tratadas no endpoint /notification.</p>
+      <code>POST /notification</code>
+      <p>O status do pagamento é atualizado no banco de dados com base nos dados da notificação.</p>
+    </section>
+    
+    <section id="raffle">
+      <h2>Números do Sorteio</h2>
+      <p>Recupere os números do sorteio e seus status com base no email do usuário.</p>
+      <code>GET /raffleNumbers/:email</code>
+    </section>
+  </main>
+  
+  <footer>
+    <p>&copy; 2023 Documentação do Sistema de Pagamento</p>
+  </footer>
+</body>
+</html>
