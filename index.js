@@ -3,10 +3,12 @@ import axios from 'axios';
 import { Sequelize, DataTypes } from 'sequelize';
 import chalk from 'chalk';
 import { config } from 'dotenv';
+import cors from 'cors';
 
 config();
 
 const app = express();
+app.use(cors()); // Habilitar o uso do CORS
 const port = process.env.PORT || 3000;
 
 const accessToken = process.env.MP_ACCESS_TOKEN;
