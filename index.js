@@ -159,6 +159,21 @@ app.get('/raffles', async (req, res) => {
   }
 });
 
+// Rota para listar uma rifa pelo ID
+app.get('/raffles/:id', async (req, res) => {
+  const raffleId = req.params.id;
+  try {
+    const raffle = await Raffle.findByPk(raffleId);
+    if (!raffle) {
+      return res.status(404).json({ message: 'Raffle not found' });
+    }
+    return res.json(raffle);
+  } catch (error) {
+    console.error(chalk.red('[ SERVER ] =>'), 'Error fetching raffle by ID:', error);
+    return res.status(500).json({ message: 'Error fetching raffle by ID' });
+  }
+});
+
 const paymentManager = new PaymentManager(accessToken);
 
 app.post('/createRaffle', async (req, res) => {
