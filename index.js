@@ -17,7 +17,7 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
   dialect: 'mysql'
 });
 
-const predefinedAccessToken = process.env.PASS_ADMIN; // Substitua pelo token de acesso desejado
+const predefinedAccessToken = process.env.PASS_ADMIN;
 
 class Raffle extends Sequelize.Model {}
 Raffle.init({
