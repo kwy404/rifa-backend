@@ -1,24 +1,22 @@
 import express from 'express';
 import axios from 'axios';
 import { Sequelize, DataTypes } from 'sequelize';
-import chalk from 'chalk'; // Import chalk for colorful console logs
-import { config } from 'dotenv'; // Import config function from dotenv
+import chalk from 'chalk';
+import { config } from 'dotenv';
 
-config(); // Load environment variables from .env
+config();
 
 const app = express();
-const port = process.env.PORT || 3000; // Use the environment port or default to 3000
+const port = process.env.PORT || 3000;
 
-const accessToken = process.env.MP_ACCESS_TOKEN; // Use the environment access token
+const accessToken = process.env.MP_ACCESS_TOKEN;
 
-// Sequelize initialization
 const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, {
   host: process.env.DB_HOST,
-  port: process.env.DB_PORT, // Use the environment DB_PORT
+  port: process.env.DB_PORT,
   dialect: 'mysql'
 });
 
-// Check database connection
 (async () => {
   try {
     await sequelize.authenticate();
@@ -29,7 +27,6 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
   }
 })();
 
-// Define RaffleNumber model
 const RaffleNumber = sequelize.define('RaffleNumber', {
   number: {
     type: DataTypes.INTEGER,
@@ -58,14 +55,15 @@ class PaymentManager {
   }
 
   async createPixPayment(amount, description, payerEmail, payerPhone, res) {
+    const totalAmount = amount * 10; // Assuming each number costs 10 units of currency
     const paymentData = {
-      transaction_amount: amount,
+      transaction_amount: totalAmount,
       description: description,
       payment_method_id: 'pix',
       payer: {
         email: payerEmail
       },
-      notification_url: `${process.env.NOTIFICATION_URL}/notification` // Notification URL
+      notification_url: `${process.env.NOTIFICATION_URL}/notification`
     };
 
     try {
@@ -78,18 +76,13 @@ class PaymentManager {
 
       const payment = response.data;
 
-      // Store payment details in the database
-      const createdPayment = await RaffleNumber.create({
-        email: payerEmail,
-        phone: payerPhone,
-        amount: amount,
-        description: description,
-        status: payment.status
-      });
+      const purchasedNumbers = await purchaseRandomNumbers(amount, description, payerEmail, payerPhone);
 
-      console.log(chalk.magenta('[ SERVER ] =>'), 'Payment stored in the database:', createdPayment.toJSON());
-      const paymentUrl = payment.transaction_details.external_resource_url;
-      return res.json({ message: 'Payment created', paymentUrl });
+      const createdNumbers = await createRaffleNumbers(purchasedNumbers, payerEmail, payerPhone);
+
+      console.log(chalk.magenta('[ SERVER ] =>'), 'Payment stored in the database:', createdNumbers);
+      const mercadoPago = payment;
+      return res.json({ message: 'Payment created', payameny: mercadoPago.point_of_interaction.transaction_data, purchasedNumbers, totalAmount });
     } catch (error) {
       console.error(chalk.red('[ SERVER ] =>'), 'Error creating Pix payment:', error);
       return res.status(500).json({ message: 'Error creating payment' });
@@ -135,7 +128,8 @@ app.post('/purchaseRaffleNumbers', async (req, res) => {
 });
 
 app.post('/createPixPayment', (req, res) => {
-  const { amount, description, payerEmail, payerPhone } = req.body;
+  const { amount, payerEmail, payerPhone } = req.body;
+  const description = "Rifa";
   paymentManager.createPixPayment(amount, description, payerEmail, payerPhone, res);
 });
 
@@ -162,18 +156,44 @@ app.listen(port, () => {
   console.log(chalk.magenta('[ SERVER ] =>'), `Server is running on port ${port}`);
 });
 
-// Helper function to generate random raffle numbers
-async function purchaseRandomNumbers(amount) {
+async function purchaseRandomNumbers(amount, description, payerEmail, payerPhone) {
   const purchasedNumbers = [];
   for (let i = 0; i < amount; i++) {
     const randomNum = Math.floor(Math.random() * 100) + 1;
     const existingNumber = await RaffleNumber.findOne({ where: { number: randomNum } });
     if (!existingNumber) {
-      await RaffleNumber.create({ number: randomNum });
       purchasedNumbers.push(randomNum);
     } else {
       i--; // Try again for a unique number
     }
   }
   return purchasedNumbers;
+}
+
+async function createRaffleNumbers(purchasedNumbers, payerEmail, payerPhone) {
+  const createdNumbers = [];
+  for (const number of purchasedNumbers) {
+    const createdPayment = await RaffleNumber.create({
+      number: number,
+      email: payerEmail,
+      phone: payerPhone,
+      status: 'pending'
+    });
+
+    setTimeout(async () => {
+      await removeUnpaidNumbers(createdPayment.id);
+    }, 2 * 60 * 60 * 1000);
+
+    createdNumbers.push(createdPayment.toJSON());
+  }
+  return createdNumbers;
+}
+
+async function removeUnpaidNumbers(paymentId) {
+  try {
+    await RaffleNumber.destroy({ where: { id: paymentId, status: 'pending' } });
+    console.log(chalk.magenta('[ SERVER ] =>'), 'Unpaid numbers removed from the database');
+  } catch (error) {
+    console.error(chalk.red('[ SERVER ] =>'), 'Error removing unpaid numbers:', error);
+  }
 }
