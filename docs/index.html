@@ -52,6 +52,9 @@
           "description": "Descrição da Rifa",
           "image": "URL da Imagem da Rifa",
           "price": 10,
+          "minTickets": 1,
+          "maxTickets": 100,
+          "totalTickets": 1000,
           "token": "seu-token-aqui"
         }
       </pre>
@@ -62,7 +65,7 @@
       <code>POST /createPixPayment</code>
       <pre>
         {
-          "amount": 100,
+          "amount": 1,
           "raffleId": 1,
           "payerEmail": "pagador@example.com",
           "payerPhone": "1234567890"

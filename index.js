@@ -38,6 +38,18 @@ Raffle.init({
   price: {
     type: DataTypes.INTEGER,
     allowNull: false
+  },
+  minTickets: { // Add minimum tickets field
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  maxTickets: { // Add maximum tickets field
+    type: DataTypes.INTEGER,
+    allowNull: false
+  },
+  totalTickets: { // Add total tickets field
+    type: DataTypes.INTEGER,
+    allowNull: false
   }
 }, { sequelize, modelName: 'raffle' });
 
@@ -63,6 +75,10 @@ RaffleNumber.init({
   raffleId: {
     type: DataTypes.INTEGER,
     allowNull: false
+  },
+  transactionId: {
+    type: DataTypes.STRING,
+    allowNull: true
   }
 }, { sequelize, modelName: 'raffleNumber' });
 
@@ -88,6 +104,11 @@ class PaymentManager {
     if (!raffle) {
       return res.status(404).json({ message: 'Raffle not found' });
     }
+    
+    if (amount < raffle.minTickets || amount > raffle.maxTickets) { // Check if the number of tickets is within the allowed range
+      return res.status(400).json({ message: 'Invalid number of tickets' });
+    }
+
     const totalAmount = raffle.price * amount; // Calculate total amount
     const paymentData = {
       transaction_amount: totalAmount,
@@ -109,8 +130,8 @@ class PaymentManager {
 
       const payment = response.data;
 
-      const purchasedNumbers = await purchaseRandomNumbers(amount);
-      const createdNumbers = await createRaffleNumbers(raffleId, purchasedNumbers, payerEmail, payerPhone);
+      const purchasedNumbers = await purchaseRaffleNumbers(raffleId, amount); // Generate raffle numbers based on the total number of tickets
+      const createdNumbers = await createRaffleNumbers(raffleId, purchasedNumbers, payerEmail, payerPhone, payment.id);
 
       console.log(chalk.magenta('[ SERVER ] =>'), 'Payment stored in the database:', createdNumbers);
       const mercadoPago = payment;
@@ -122,30 +143,59 @@ class PaymentManager {
   }
 
   async handleNotification(notificationData, res) {
-    console.log(chalk.magenta('[ SERVER ] =>    '), 'Received notification from MercadoPago:', notificationData);
-    const paymentId = notificationData.data.id;
-
+    console.log(chalk.magenta('[ SERVER ] =>'), 'Received notification from MercadoPago:', notificationData);
     try {
-      const response = await axios.get(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`
-        }
-      });
+      const paymentId = notificationData.data.id;
+      try {
+        const response = await axios.get(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`
+          }
+        });
 
-      const payment = response.data;
-      const status = payment.status;
+        const payment = response.data;
+        const status = payment.status;
 
-      await RaffleNumber.update({
-        status: status
-      }, {
-        where: { email: payment.payer.email }
-      });
+        await RaffleNumber.update({
+          status: status,
+        }, {
+          where: { transactionId: payment.id }
+        });
 
-      console.log(chalk.magenta('[ SERVER ] =>'), 'Payment status updated in the database:', status);
-      return res.json({ message: 'Payment status updated' });
+        console.log(chalk.magenta('[ SERVER ] =>'), 'Payment status updated in the database:', status);
+        return res.json({ message: 'Payment status updated' });
+      } catch (error) {
+        console.error(chalk.red('[ SERVER ] =>'), 'Error fetching payment details:', error);
+        return res.status(500).json({ message: 'Error processing notification' });
+      }
     } catch (error) {
-      console.error(chalk.red('[ SERVER ] =>'), 'Error fetching payment details:', error);
-      return res.status(500).json({ message: 'Error processing notification' });
+      try {
+        const paymentId = notificationData.resource.split("notifications/")[1];
+        try {
+          const response = await axios.get(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
+            headers: {
+              'Authorization': `Bearer ${this.accessToken}`
+            }
+          });
+
+          const payment = response.data;
+          const status = payment.status;
+
+          await RaffleNumber.update({
+            status: status,
+          }, {
+            where: { transactionId: payment.id }
+          });
+
+          console.log(chalk.magenta('[ SERVER ] =>'), 'Payment status updated in the database:', status);
+          return res.json({ message: 'Payment status updated' });
+        } catch (error) {
+          console.error(chalk.red('[ SERVER ] =>'), 'Error fetching payment details:', error);
+          return res.status(500).json({ message: 'Error processing notification' });
+        }
+      } catch (error) {
+        
+      }
     }
   }
 }
@@ -179,7 +229,7 @@ app.get('/raffles/:id', async (req, res) => {
 const paymentManager = new PaymentManager(accessToken);
 
 app.post('/createRaffle', async (req, res) => {
-  const { title, description, image, price, token } = req.body;
+  const { title, description, image, price, minTickets, maxTickets, totalTickets, token } = req.body;
   if (token !== predefinedAccessToken) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
@@ -188,7 +238,10 @@ app.post('/createRaffle', async (req, res) => {
       title: title,
       description: description,
       image: image,
-      price: price
+      price: price,
+      minTickets: minTickets,
+      maxTickets: maxTickets,
+      totalTickets: totalTickets
     });
     return res.json({ message: 'Raffle created', raffle: raffle });
   } catch (error) {
@@ -220,21 +273,23 @@ app.get('/raffleNumbers/:email', async (req, res) => {
   }
 });
 
-async function purchaseRandomNumbers(amount) {
+async function purchaseRaffleNumbers(raffleId, amount) {
   const purchasedNumbers = [];
-  for (let i = 0; i < amount; i++) {
-    const randomNum = Math.floor(Math.random() * 100) + 1;
-    const existingNumber = await RaffleNumber.findOne({ where: { number: randomNum } });
-    if (!existingNumber) {
-      purchasedNumbers.push(randomNum);
-    } else {
-      i--; // Try again for a unique number
-    }
+  const raffle = await Raffle.findByPk(raffleId);
+  if (!raffle) {
+    throw new Error('Raffle not found');
   }
+
+  const maxNumber = raffle.totalTickets;
+  for (let i = 0; i < amount; i++) {
+    const randomNum = Math.floor(Math.random() * (maxNumber + 1)); // Generate numbers from 0 to maxNumber
+    purchasedNumbers.push(randomNum);
+  }
+  
   return purchasedNumbers;
 }
 
-async function createRaffleNumbers(raffleId, purchasedNumbers, payerEmail, payerPhone) {
+async function createRaffleNumbers(raffleId, purchasedNumbers, payerEmail, payerPhone, paymentId) {
   const createdNumbers = [];
   for (const number of purchasedNumbers) {
     const createdPayment = await RaffleNumber.create({
@@ -242,7 +297,8 @@ async function createRaffleNumbers(raffleId, purchasedNumbers, payerEmail, payer
       email: payerEmail,
       phone: payerPhone,
       status: 'pending',
-      raffleId: raffleId
+      raffleId: raffleId,
+      transactionId: paymentId
     });
 
     setTimeout(async () => {
