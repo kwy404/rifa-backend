@@ -17,6 +17,8 @@ const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, proces
   dialect: 'mysql'
 });
 
+const predefinedAccessToken = 'xande123'; // Substitua pelo token de acesso desejado
+
 class Raffle extends Sequelize.Model {}
 Raffle.init({
   title: {
@@ -146,10 +148,24 @@ class PaymentManager {
   }
 }
 
+// Rota para listar todas as rifas disponíveis
+app.get('/raffles', async (req, res) => {
+  try {
+    const raffles = await Raffle.findAll();
+    return res.json(raffles);
+  } catch (error) {
+    console.error(chalk.red('[ SERVER ] =>'), 'Error fetching raffles:', error);
+    return res.status(500).json({ message: 'Error fetching raffles' });
+  }
+});
+
 const paymentManager = new PaymentManager(accessToken);
 
 app.post('/createRaffle', async (req, res) => {
-  const { title, description, image, price } = req.body;
+  const { title, description, image, price, token } = req.body;
+  if (token !== predefinedAccessToken) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
   try {
     const raffle = await Raffle.create({
       title: title,

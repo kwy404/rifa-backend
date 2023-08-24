@@ -14,6 +14,7 @@
     <ul>
       <li><a href="#introduction">👋 Introdução</a></li>
       <li><a href="#database">💽 Conexão com o Banco de Dados</a></li>
+      <li><a href="#list-raffles">🎉 Listando Rifas</a></li>
       <li><a href="#create-raffle">🎉 Criando uma Rifa</a></li>
       <li><a href="#create-payment">💸 Criando um Pagamento Pix</a></li>
       <li><a href="#notifications">🔔 Tratando Notificações</a></li>
@@ -30,21 +31,28 @@
       <p>Antes de usar o sistema, certifique-se de que o banco de dados esteja configurado corretamente e conectado. Verifique os registros do servidor para verificar o status da conexão.</p>
       <pre><code>const sequelize = new Sequelize(process.env.DB_NAME, process.env.DB_USER, process.env.DB_PASSWORD, { ... });</code></pre>
     </section>
+    <section id="list-raffles">
+      <h2>🎉 Listando Rifas</h2>
+      <p>Para listar todas as rifas disponíveis, envie uma solicitação GET para <code>/raffles</code>.</p>
+      <code>GET /raffles</code>
+    </section>
     <section id="create-raffle">
       <h2>🎉 Criando uma Rifa</h2>
-      <p>Para criar uma nova rifa, envie uma solicitação POST para /createRaffle com os detalhes da rifa.</p>
+      <p>Para criar uma nova rifa, envie uma solicitação POST para <code>/createRaffle</code> com os detalhes da rifa e o token de acesso.</p>
       <code>POST /createRaffle</code>
       <pre>
         {
           "title": "Título da Rifa",
           "description": "Descrição da Rifa",
-          "image": "URL da Imagem da Rifa"
+          "image": "URL da Imagem da Rifa",
+          "price": 10,
+          "token": "xande123"
         }
       </pre>
     </section>
     <section id="create-payment">
       <h2>💸 Criando um Pagamento Pix</h2>
-      <p>Para criar um pagamento Pix, envie uma solicitação POST para /createPixPayment com os detalhes do pagamento.</p>
+      <p>Para criar um pagamento Pix, envie uma solicitação POST para <code>/createPixPayment</code> com os detalhes do pagamento.</p>
       <code>POST /createPixPayment</code>
       <pre>
         {
@@ -57,7 +65,7 @@
     </section>
     <section id="notifications">
       <h2>🔔 Tratando Notificações</h2>
-      <p>As notificações do Mercado Pago são tratadas no endpoint /notification.</p>
+      <p>As notificações do Mercado Pago são tratadas no endpoint <code>/notification</code>.</p>
       <code>POST /notification</code>
       <p>O status do pagamento é atualizado no banco de dados com base nos dados da notificação.</p>
     </section>
