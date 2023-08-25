@@ -17,6 +17,7 @@
       <li><a href="#list-raffles">🎉 Listando Rifas</a></li>
       <li><a href="#get-raffle">🎉 Obtendo Detalhes de uma Rifa</a></li>
       <li><a href="#create-raffle">🎉 Criando uma Rifa</a></li>
+      <li><a href="#delete-raffle">🗑️ Deletando uma Rifa</a></li>
       <li><a href="#create-payment">💸 Criando um Pagamento Pix</a></li>
       <li><a href="#notifications">🔔 Tratando Notificações</a></li>
       <li><a href="#raffle-numbers">🎫 Números do Sorteio</a></li>
@@ -66,6 +67,11 @@
       <p><strong>maxTickets:</strong> Essa propriedade define o número máximo de bilhetes que um participante pode comprar.</p>
       <p><strong>totalTickets:</strong> Essa propriedade representa o número total de bilhetes disponíveis para a rifa.</p>
       <p><strong>token:</strong> Essa propriedade funciona como uma medida de segurança.</p>
+    </section>
+    <section id="delete-raffle">
+      <h2>🗑️ Deletando uma Rifa</h2>
+      <p>Para deletar uma rifa pelo ID e token de admin, faça uma solicitação DELETE para <code>/deleteRaffle/:id</code> com o token no query parameter.</p>
+      <code>DELETE /deleteRaffle/:id?token=seu-token-admin</code>
     </section>
     <section id="create-payment">
       <h2>💸 Criando um Pagamento Pix</h2>

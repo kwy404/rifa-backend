@@ -211,6 +211,32 @@ app.get('/raffles', async (req, res) => {
   }
 });
 
+// Rota para deletar uma rifa pelo ID e token de admin
+app.delete('/deleteRaffle/:id', async (req, res) => {
+  const raffleId = req.params.id;
+  const token = req.query.token;
+  
+  if (token !== predefinedAccessToken) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
+  try {
+    const raffle = await Raffle.findByPk(raffleId);
+    if (!raffle) {
+      return res.status(404).json({ message: 'Raffle not found' });
+    }
+
+    await raffle.destroy();
+    
+    // Retorna todas as rifas restantes após a exclusão
+    const remainingRaffles = await Raffle.findAll();
+    return res.json({ message: 'Raffle deleted', remainingRaffles: remainingRaffles });
+  } catch (error) {
+    console.error(chalk.red('[ SERVER ] =>'), 'Error deleting raffle:', error);
+    return res.status(500).json({ message: 'Error deleting raffle' });
+  }
+});
+
 // Rota para listar uma rifa pelo ID
 app.get('/raffles/:id', async (req, res) => {
   const raffleId = req.params.id;
