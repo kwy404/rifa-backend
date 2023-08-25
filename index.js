@@ -312,7 +312,7 @@ async function createRaffleNumbers(raffleId, purchasedNumbers, payerEmail, payer
 
 async function removeUnpaidNumbers(paymentId) {
   try {
-    await RaffleNumber.destroy({ where: { id: paymentId, status: 'pending' } });
+    await RaffleNumber.destroy({ where: { transactionId: paymentId, status: 'pending' } });
     console.log(chalk.magenta('[ SERVER ] =>'), 'Unpaid numbers removed from the database');
   } catch (error) {
     console.error(chalk.red('[ SERVER ] =>'), 'Error removing unpaid numbers:', error);
